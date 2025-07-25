@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/qt/qml/RGRP_QML">
+        <file>UI/run.js</file>
+        <file>UI/data.js</file>
+        <file>UI/selection.js</file>
+        <file>images/2Mach.png</file>
+        <file>images/4cds.png</file>
+        <file>images/4shocks.png</file>
+        <file>images/jet800.png</file>
+        <file>images/logo.png</file>
+    </qresource>
+</RCC>
