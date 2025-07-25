@@ -5,7 +5,6 @@ import QtQuick.Controls.Basic
 import QtQuick.Controls.Material
 import "selection.js" as UpdateConfig
 import "run.js" as KernelRelated
-import "data.js" as DataProcess
 
 ApplicationWindow {
     id: app
