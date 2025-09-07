@@ -126,93 +126,6 @@ void RGRP_2D_CUDA::freeDevice()
     deviceAllocated = false;
 }
 
-vector<vector<vec5d>> RGRP_2D_CUDA::solve()
-{
-    int iter = 0;
-    int iter_ = 0;
-    while (_cTime_ < _endTime_)
-    {
-        maxPropagtingSpeed<<<gridSize, blockSize>>>(u_dev, speed, _Nx_, _Ny_, _gamma_);
-        cudaDeviceSynchronize();
-        thrust::device_ptr<real> p_speed = thrust::device_pointer_cast(speed);
-        real max_speed = reduce(p_speed, p_speed + num_cells, -std::numeric_limits<real>::infinity(), thrust::maximum<real>());
-        real h = std::min(_width_ / real(_Nx_), _height_ / real(_Ny_));
-        real dt = std::min(__CFL__ * h / max_speed, _endTime_ - _cTime_);
-        if (dt < 1e-20)
-        {
-            break;
-        }
-
-        cudaMemcpy(u_dev_copy, u_dev, num_cells * sizeof(vec5d), cudaMemcpyDeviceToDevice);
-
-        MUSCL<<<gridSize, blockSize>>>(u_dev, u_slope_dev, _Nx_, _Ny_, _alpha_, _width_, u_lr_interface_dev);
-        cudaDeviceSynchronize();
-        rel_RP_posi_fix<<<gridSize, blockSize>>>(u_dev, u_slope_dev, u_lr_interface_dev, _Nx_, _Ny_, _gamma_);
-        cudaDeviceSynchronize();
-        forward_x_dir<<<gridSize, blockSize>>>(u_dev, u_lr_interface_dev, _Nx_, _Ny_, _width_, dt, _gamma_);
-        cudaDeviceSynchronize();
-        rotate_and_flip_vertically<<<gridSize, blockSize>>>(u_dev, u_y_dev, _Nx_, _Ny_);
-        cudaDeviceSynchronize();
-        MUSCL<<<gridSize_y, blockSize>>>(u_y_dev, u_slope_dev, _Ny_, _Nx_, _alpha_, _height_, u_lr_interface_dev);
-        cudaDeviceSynchronize();
-        rel_RP_posi_fix<<<gridSize_y, blockSize>>>(u_y_dev, u_slope_dev, u_lr_interface_dev, _Ny_, _Nx_, _gamma_);
-        cudaDeviceSynchronize();
-        forward_x_dir<<<gridSize_y, blockSize>>>(u_y_dev, u_lr_interface_dev, _Ny_, _Nx_, _height_, dt, _gamma_);
-        cudaDeviceSynchronize();
-        rotate_and_flip_vertically<<<gridSize_y, blockSize>>>(u_y_dev, u_dev, _Ny_, _Nx_);
-        cudaDeviceSynchronize();
-
-        rotate_and_flip_vertically<<<gridSize, blockSize>>>(u_dev_copy, u_y_dev, _Nx_, _Ny_);
-        cudaDeviceSynchronize();
-        MUSCL<<<gridSize_y, blockSize>>>(u_y_dev, u_slope_dev, _Ny_, _Nx_, _alpha_, _height_, u_lr_interface_dev);
-        cudaDeviceSynchronize();
-        rel_RP_posi_fix<<<gridSize_y, blockSize>>>(u_y_dev, u_slope_dev, u_lr_interface_dev, _Ny_, _Nx_, _gamma_);
-        cudaDeviceSynchronize();
-        forward_x_dir<<<gridSize_y, blockSize>>>(u_y_dev, u_lr_interface_dev, _Ny_, _Nx_, _height_, dt, _gamma_);
-        cudaDeviceSynchronize();
-        rotate_and_flip_vertically<<<gridSize_y, blockSize>>>(u_y_dev, u_dev_copy, _Ny_, _Nx_);
-        cudaDeviceSynchronize();
-        MUSCL<<<gridSize, blockSize>>>(u_dev_copy, u_slope_dev, _Nx_, _Ny_, _alpha_, _width_, u_lr_interface_dev);
-        cudaDeviceSynchronize();
-        rel_RP_posi_fix<<<gridSize, blockSize>>>(u_dev_copy, u_slope_dev, u_lr_interface_dev, _Nx_, _Ny_, _gamma_);
-        cudaDeviceSynchronize();
-        forward_x_dir<<<gridSize, blockSize>>>(u_dev_copy, u_lr_interface_dev, _Nx_, _Ny_, _width_, dt, _gamma_);
-        cudaDeviceSynchronize();
-
-        combineResults<<<gridSize, blockSize>>>(u_dev, u_dev_copy, _Nx_, _Ny_);
-
-        _cTime_ += dt;
-        iter++;
-        iter_++;
-
-        if (__strategy__ == ghostCellStrategy::outflow)
-        {
-            set_ghost_cells<<<gridSize, blockSize>>>(u_dev, _Nx_, _Ny_, _width_, _height_, _cTime_);
-        }
-        else if (__strategy__ == ghostCellStrategy::jet)
-        {
-            set_ghost_cells_jet<<<gridSize, blockSize>>>(u_dev, _Nx_, _Ny_, _width_, _height_, _cTime_);
-        }
-        else if (__strategy__ == ghostCellStrategy::jet800)
-        {
-            set_ghost_cells_jet800<<<gridSize, blockSize>>>(u_dev, _Nx_, _Ny_, _width_, _height_, _cTime_);
-        }
-        else if (__strategy__ == ghostCellStrategy::RMInstability)
-        {
-            set_ghost_cells_RMInstability<<<gridSize, blockSize>>>(u_dev, _Nx_, _Ny_, _width_, _height_, _cTime_);
-        }
-        else
-        {
-            set_ghost_cells_2Mach<<<gridSize, blockSize>>>(u_dev, _Nx_, _Ny_, _width_, _height_, _cTime_);
-        }
-        cudaDeviceSynchronize();
-    }
-
-    cudaMemcpy(_U0_.data(), u_dev, num_cells * sizeof(vec5d), cudaMemcpyDeviceToHost);
-    _U_ = flattened2vectorized(_U0_);
-    return _U_;
-}
-
 void RGRP_2D_CUDA::iterateOnce()
 {
     maxPropagtingSpeed<<<gridSize, blockSize>>>(u_dev, speed, _Nx_, _Ny_, _gamma_);
@@ -310,4 +223,5 @@ vector<vector<vec5d>> RGRP_2D_CUDA::flattened2vectorized(const vector<vec5d> &fl
         ret.push_back(temp);
     }
     return ret;
+
 }
