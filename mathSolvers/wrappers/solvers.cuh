@@ -37,7 +37,6 @@ public:
     void setGhostCellStrategy(ghostCellStrategy strategy);
     void allocateDevice();
     void freeDevice();
-    vector<vector<vec5d>> solve();
     void iterateOnce();
     void copyFromDevice();
 
@@ -67,3 +66,4 @@ protected:
 
     vector<vector<vec5d>> flattened2vectorized(const vector<vec5d> &flattened);
 };
+
