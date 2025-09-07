@@ -72,7 +72,7 @@ __global__ void RGRP::kernels::rel_RP_posi_fix(vec5d *U, vec5d *Us, vec5d *U_lr_
         int idxL = j * Nx + i - 1; // left cell
         int idx = j * Nx + i;      // cell i(left interface)
 
-        // The implementation miantains proprietary untill the date of submission of my paper.
+        // The following implementation miantains proprietary untill the date of submission of my paper.
     }
 }
 
@@ -156,4 +156,5 @@ __global__ void RGRP::kernels::combineResults(vec5d *U1, vec5d *U2, int Nx, int 
         U1[idx] = (U1[idx] + U2[idx]) * 0.5;
     }
 }
+
 
